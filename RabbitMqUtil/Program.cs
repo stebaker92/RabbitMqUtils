@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Specialized;
 using System.Net;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -24,14 +25,24 @@ namespace RabbitMqUtil
 
             SetupClient();
 
-            RetryErrorQueueAsync(virtualHost, queue).Wait();
+            //RetryErrorQueueAsync(virtualHost, queue).Wait();
+            //PurgeErrorQueueAsync(virtualHost, queue).Wait();
+
+            Console.WriteLine("Complete!");
         }
 
         private static void SetupClient()
         {
+            // TODO use HttpClient
+
             client = new WebClient();
 
             client.Credentials = new NetworkCredential(userName, password);
+        }
+
+        private static async Task PurgeErrorQueueAsync(string virtualHost, string queueName)
+        {
+            client.UploadValues($"{rabbitUrl}api/queues/{virtualHost}/{queueName}/contents", "DELETE", new NameValueCollection());
         }
 
         private static async Task RetryErrorQueueAsync(string virtualHost, string queueName)
