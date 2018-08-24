@@ -8,6 +8,10 @@ namespace RabbitMqUtil
         public ShovelData ShovelData { get; set; }
     }
 
+    /// <summary>
+    /// See documentation at: https://www.rabbitmq.com/shovel-dynamic.html 
+    /// Example at: https://github.com/rabbitmq/rabbitmq-shovel-management/issues/13
+    /// </summary>
     public class ShovelData
     {
         [JsonProperty("src-uri")]
@@ -22,7 +26,10 @@ namespace RabbitMqUtil
         [JsonProperty("dest-queue")]
         public string DestQueue { get; set; }
 
+        /// <summary>
+        /// Needs to be dynamic as this can be either a string or an int
+        /// </summary>
         [JsonProperty("delete-after")]
-        public string DeleteAfter { get; set; }
+        public dynamic DeleteAfter { get; set; }
     }
 }

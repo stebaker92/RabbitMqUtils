@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Specialized;
 using System.Net;
 using System.Threading.Tasks;
@@ -26,6 +26,7 @@ namespace RabbitMqUtil
             SetupClient();
 
             //RetryErrorQueueAsync(virtualHost, queue).Wait();
+            //RetryErrorQueueSingleAsync(virtualHost, queue).Wait();
             //PurgeErrorQueueAsync(virtualHost, queue).Wait();
 
             Console.WriteLine("Complete!");
@@ -61,6 +62,34 @@ namespace RabbitMqUtil
                 DestUri = amqpurl,
                 DestQueue = liveQueue,
                 DeleteAfter = "queue-length"
+            };
+
+            var jsonShovel = JsonConvert.SerializeObject(new Shovel { ShovelData = value });
+
+            client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+
+            var response = await client.UploadStringTaskAsync(new Uri(shovelApiUrl), "PUT", jsonShovel);
+
+            Console.WriteLine("Successful response: " + response);
+
+        }
+
+        private static async Task RetryErrorQueueSingleAsync(string virtualHost, string queueName)
+        {
+            var stringErrorLength = ("_error").Length;
+            var liveQueue = queueName.Remove(queueName.Length - stringErrorLength);
+            var amqpurl = $"amqp://{userName}@/{virtualHost}";
+
+            // Use the shovel plugin to move messages between queues
+            var shovelApiUrl = $"{ rabbitUrl }api/parameters/shovel/{virtualHost}/retry{queueName}";
+
+            var value = new ShovelData
+            {
+                SrcUri = amqpurl,
+                SrcQueue = queueName,
+                DestUri = amqpurl,
+                DestQueue = liveQueue,
+                DeleteAfter = 1
             };
 
             var jsonShovel = JsonConvert.SerializeObject(new Shovel { ShovelData = value });
