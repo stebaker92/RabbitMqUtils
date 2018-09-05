@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -25,11 +27,14 @@ namespace RabbitMqUtil
 
             SetupClient();
 
+            //GetMessagesGrouped(virtualHost, queue).Wait();
             //RetryErrorQueueAsync(virtualHost, queue).Wait();
             //RetryErrorQueueSingleAsync(virtualHost, queue).Wait();
             //PurgeErrorQueueAsync(virtualHost, queue).Wait();
 
-            Console.WriteLine("Complete!");
+            Console.WriteLine("Complete! Press any key to exit.");
+
+            Console.ReadKey();
         }
 
         private static void SetupClient()
@@ -39,6 +44,37 @@ namespace RabbitMqUtil
             client = new WebClient();
 
             client.Credentials = new NetworkCredential(userName, password);
+        }
+
+        private static async Task GetMessagesGrouped(string vh, string queueName)
+        {
+            var json = "{\"count\":1000,\"requeue\":true,\"encoding\":\"auto\",\"durable\": \"true\"}";
+
+            var response = client.UploadString($"{rabbitUrl}api/queues/{vh}/{queueName}/get", "POST", json);
+
+            var messages = JsonConvert.DeserializeObject<List<Message>>(response);
+
+            var grouped = messages
+                .GroupBy(x => GetPayloadGroup(x))
+                .OrderByDescending(x => x.Key)
+                .ToList();
+
+            var topResults = grouped
+                .Take(10)
+                .ToList();
+
+            Console.WriteLine("Grouped messages:");
+
+            topResults.ForEach(r =>
+            {
+                Console.WriteLine($"{r.Count()} : {r.Key}");
+            });
+
+            object GetPayloadGroup(Message x)
+            {
+                // TODO - add implementation of what to group messages by here:
+                return x.PayloadMessage?.someTypeId;
+            }
         }
 
         private static async Task PurgeErrorQueueAsync(string virtualHost, string queueName)
